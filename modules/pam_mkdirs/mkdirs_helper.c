@@ -378,9 +378,9 @@ main(int argc, char *argv[])
 	 
 	 size_t n_extradirs = 0;
 	 char **extra_dirs = NULL;
-	 while (!strncmp(argv[3],"extra_dirs=", 11)) {
+	 while (argc >= 3 && !strncmp(argv[2],"extra_dirs=", 11)) {
 		 extra_dirs = (char **)realloc(extra_dirs, sizeof(char *) * (n_extradirs + 1));
-		 extra_dirs[n_extradirs++] = argv[3]+11;
+		 extra_dirs[n_extradirs++] = argv[2]+11;
 		 argc--; argv++;
 	 }
 
@@ -404,18 +404,17 @@ main(int argc, char *argv[])
 
    /* Stat the home directory, if something exists then we assume it is
       correct and return a success */
-   if (stat(pwd->pw_dir, &st) == 0)
-	return PAM_SUCCESS;
+   if (stat(pwd->pw_dir, &st) != 0) {
+		 if (make_parent_dirs(pwd->pw_dir, 0) != PAM_SUCCESS)
+				return PAM_PERM_DENIED;
 
-   if (make_parent_dirs(pwd->pw_dir, 0) != PAM_SUCCESS)
-	return PAM_PERM_DENIED;
-
-   int ret = create_homedir(pwd, skeldir, pwd->pw_dir);
-	 if (ret)
-	 		return ret;
-			
+	   int ret = create_homedir(pwd, skeldir, pwd->pw_dir);
+		 if (ret)
+		 		return ret;
+	 }
+				
 	 for (size_t i = 0; i < n_extradirs; ++i) {
-		 skeldir[0] = '0';
+		 skeldir[0] = '\0';
 		 strncat(skeldir, extra_dirs[i], sizeof(skeldir));
 		 strncat(skeldir, "/", sizeof(skeldir));
 		 strncat(skeldir, pwd->pw_name, sizeof(skeldir));

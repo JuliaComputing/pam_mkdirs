@@ -58,6 +58,8 @@
 #include <security/pam_modutil.h>
 #include <security/pam_ext.h>
 
+#define MAX_FD_NO 10000
+
 /* argument parsing */
 #define MKHOMEDIR_DEBUG      020	/* be verbose about things */
 #define MKHOMEDIR_QUIET      040	/* keep quiet about things */
@@ -98,7 +100,7 @@ _pam_parse (const pam_handle_t *pamh, int flags, int argc, const char **argv,
 	 opt->skeldir = *argv+5;
       } else if (!strncmp(*argv,"extra_dirs=",11)) {
 				opt->extra_dirs = (char **)realloc(opt->extra_dirs, sizeof(char *) * (opt->n_extradirs + 1));
-				opt->extra_dirs[opt->n_extradirs++] = *argv+11;
+				opt->extra_dirs[opt->n_extradirs++] = *argv;
       } else {
 	 pam_syslog(pamh, LOG_ERR, "unknown option: %s", *argv);
       }
@@ -136,19 +138,27 @@ create_homedir (pam_handle_t *pamh, options_t *opt,
    /* fork */
    child = fork();
    if (child == 0) {
+	struct rlimit rlim;
 	static char *envp[] = { NULL };
-	const char *args[] = { NULL, NULL, NULL, NULL, NULL };
+	const char **args = (char**)malloc(sizeof(char*)*(5+opt->n_extradirs));
 
-	if (pam_modutil_sanitize_helper_fds(pamh, PAM_MODUTIL_PIPE_FD,
-					    PAM_MODUTIL_PIPE_FD,
-					    PAM_MODUTIL_PIPE_FD) < 0)
-		_exit(PAM_SYSTEM_ERR);
+	if (getrlimit(RLIMIT_NOFILE, &rlim)==0) {
+          if (rlim.rlim_max >= MAX_FD_NO)
+                rlim.rlim_max = MAX_FD_NO;
+	  for (int i=0; i < (int)rlim.rlim_max; i++) {
+		close(i);
+	  }
+	}
 
 	/* exec the mkhomedir helper */
 	args[0] = MKDIRS_HELPER;
 	args[1] = user;
-	args[2] = opt->umask;
-	args[3] = opt->skeldir;
+	int idx = 2;
+	for (int i = 0; i < opt->n_extradirs; i++)
+		args[idx++] = opt->extra_dirs[i];
+	args[idx++] = opt->umask;
+	args[idx++] = opt->skeldir;
+	args[idx++] = NULL;
 
 	execve(MKDIRS_HELPER, (char *const *) args, envp);
 
