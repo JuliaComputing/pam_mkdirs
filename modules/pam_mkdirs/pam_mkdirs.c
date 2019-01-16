@@ -66,6 +66,8 @@ struct options_t {
   int ctrl;
   const char *umask;
   const char *skeldir;
+	int n_extradirs;
+	const char **extra_dirs;
 };
 typedef struct options_t options_t;
 
@@ -76,6 +78,8 @@ _pam_parse (const pam_handle_t *pamh, int flags, int argc, const char **argv,
    opt->ctrl = 0;
    opt->umask = "0022";
    opt->skeldir = "/etc/skel";
+	 opt->n_extradirs = 0;
+	 opt->extra_dirs = NULL;
 
    /* does the appliction require quiet? */
    if ((flags & PAM_SILENT) == PAM_SILENT)
@@ -92,6 +96,9 @@ _pam_parse (const pam_handle_t *pamh, int flags, int argc, const char **argv,
 	 opt->umask = *argv+6;
       } else if (!strncmp(*argv,"skel=",5)) {
 	 opt->skeldir = *argv+5;
+      } else if (!strncmp(*argv,"extra_dirs=",11)) {
+				opt->extra_dirs = (char **)realloc(opt->extra_dirs, sizeof(char *) * (opt->n_extradirs + 1));
+				opt->extra_dirs[opt->n_extradirs++] = *argv+11;
       } else {
 	 pam_syslog(pamh, LOG_ERR, "unknown option: %s", *argv);
       }
@@ -123,7 +130,7 @@ create_homedir (pam_handle_t *pamh, options_t *opt,
    sigaction(SIGCHLD, &newsa, &oldsa);
 
    if (opt->ctrl & MKHOMEDIR_DEBUG) {
-        pam_syslog(pamh, LOG_DEBUG, "Executing mkhomedir_helper.");
+        pam_syslog(pamh, LOG_DEBUG, "Executing mkdirs_helper.");
    }
 
    /* fork */
@@ -138,12 +145,12 @@ create_homedir (pam_handle_t *pamh, options_t *opt,
 		_exit(PAM_SYSTEM_ERR);
 
 	/* exec the mkhomedir helper */
-	args[0] = MKHOMEDIR_HELPER;
+	args[0] = MKDIRS_HELPER;
 	args[1] = user;
 	args[2] = opt->umask;
 	args[3] = opt->skeldir;
 
-	execve(MKHOMEDIR_HELPER, (char *const *) args, envp);
+	execve(MKDIRS_HELPER, (char *const *) args, envp);
 
 	/* should not get here: exit with error */
 	D(("helper binary is not available"));

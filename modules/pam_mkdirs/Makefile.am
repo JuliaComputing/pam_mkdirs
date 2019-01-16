@@ -21,13 +21,13 @@ AM_CFLAGS = -I$(top_srcdir)/libpam/include -I$(top_srcdir)/libpamc/include \
 	    -DMKDIRS_HELPER=\"$(sbindir)/mkdirs_helper\"
 
 securelib_LTLIBRARIES = pam_mkdirs.la
-pam_mkhomedir_la_SOURCES = pam_mkdirs.c
-pam_mkhomedir_la_LIBADD = $(top_builddir)/libpam/libpam.la
-pam_mkhomedir_la_LDFLAGS = -no-undefined -avoid-version -module
+pam_mkdirs_la_SOURCES = pam_mkdirs.c
+pam_mkdirs_la_LIBADD = $(top_builddir)/libpam/libpam.la
+pam_mkdirs_la_LDFLAGS = -no-undefined -avoid-version -module
 if HAVE_VERSIONING
-  pam_mkhomedir_la_LDFLAGS += -Wl,--version-script=$(srcdir)/../modules.map
+  pam_mkdirs_la_LDFLAGS += -Wl,--version-script=$(srcdir)/../modules.map
 endif
 
 sbin_PROGRAMS = mkdirs_helper
-mkhomedir_helper_SOURCES = mkdirs_helper.c
-mkhomedir_helper_LDADD = $(top_builddir)/libpam/libpam.la
+mkdirs_helper_SOURCES = mkdirs_helper.c
+mkdirs_helper_LDADD = $(top_builddir)/libpam/libpam.la

@@ -366,7 +366,7 @@ main(int argc, char *argv[])
    struct stat st;
 
    if (argc < 2) {
-	fprintf(stderr, "Usage: %s <username> [<umask> [<skeldir>]]\n", argv[0]);
+	fprintf(stderr, "Usage: %s <username> [extra_dirs=...] [<umask> [<skeldir>]]\n", argv[0]);
 	return PAM_SESSION_ERR;
    }
 
@@ -375,6 +375,14 @@ main(int argc, char *argv[])
 	pam_syslog(NULL, LOG_ERR, "User unknown.");
 	return PAM_CRED_INSUFFICIENT;
    }
+	 
+	 size_t n_extradirs = 0;
+	 char **extra_dirs = NULL;
+	 while (!strncmp(argv[3],"extra_dirs=", 11)) {
+		 extra_dirs = (char **)realloc(extra_dirs, sizeof(char *) * (n_extradirs + 1));
+		 extra_dirs[n_extradirs++] = argv[3]+11;
+		 argc--; argv++;
+	 }
 
    if (argc >= 3) {
 	char *eptr;
@@ -402,5 +410,18 @@ main(int argc, char *argv[])
    if (make_parent_dirs(pwd->pw_dir, 0) != PAM_SUCCESS)
 	return PAM_PERM_DENIED;
 
-   return create_homedir(pwd, skeldir, pwd->pw_dir);
+   int ret = create_homedir(pwd, skeldir, pwd->pw_dir);
+	 if (ret)
+	 		return ret;
+			
+	 for (size_t i = 0; i < n_extradirs; ++i) {
+		 skeldir[0] = '0';
+		 strncat(skeldir, extra_dirs[i], sizeof(skeldir));
+		 strncat(skeldir, "/", sizeof(skeldir));
+		 strncat(skeldir, pwd->pw_name, sizeof(skeldir));
+		 if (stat(skeldir, &st) == 0)
+		 		continue;
+		 if (create_homedir(pwd, NULL, skeldir))
+		 	return PAM_PERM_DENIED;
+	 }
 }

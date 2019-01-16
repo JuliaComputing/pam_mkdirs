@@ -614,7 +614,8 @@ AC_CONFIG_FILES([Makefile libpam/Makefile libpamc/Makefile libpamc/test/Makefile
 	modules/pam_lastlog/Makefile modules/pam_limits/Makefile \
 	modules/pam_listfile/Makefile modules/pam_localuser/Makefile \
 	modules/pam_loginuid/Makefile modules/pam_mail/Makefile \
-	modules/pam_mkhomedir/Makefile modules/pam_motd/Makefile \
+	modules/pam_mkhomedir/Makefile modules/pam_mkdirs/Makefile \
+	modules/pam_motd/Makefile \
 	modules/pam_namespace/Makefile \
 	modules/pam_nologin/Makefile modules/pam_permit/Makefile \
 	modules/pam_pwhistory/Makefile modules/pam_rhosts/Makefile \
